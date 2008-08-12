@@ -24,6 +24,8 @@
 #include <Renderers/OpenGL/Renderer.h>
 #include <Renderers/OpenGL/RenderingView.h>
 #include <Renderers/OpenGL/TextureLoader.h>
+#include <Renderers/OpenGL/LightRenderer.h>
+#include <Renderers/OpenGL/ShaderLoader.h>
 #include <Resources/IModelResource.h>
 #include <Resources/File.h>
 #include <Resources/GLSLResource.h>
@@ -88,7 +90,7 @@
 #include <Utils/PropertyList.h>
 
 
-// From extensions
+// Collada extensions
 #include <Resources/ColladaResource.h>
 
 // SOUND!!!
@@ -96,6 +98,38 @@
 #include <Resources/ISoundResource.h>
 #include <Sound/OpenALSoundSystem.h>
 #include <Sound/ISound.h>
+
+// Post processing extension
+#include <Renderers/OpenGL/PostProcessingRenderingView.h>
+
+// Post processing effects extension
+#include <Effects/SimpleDoF.h>
+#include <Effects/DoF.h>
+#include <Effects/Glow.h>
+#include <Effects/VolumetricLightScattering.h>
+
+
+// effects
+#include <Effects/Wobble.h>
+#include <Effects/Shadows.h>
+#include <Effects/SimpleBlur.h>
+#include <Effects/TwoPassBlur.h>
+#include <Effects/GaussianBlur.h>
+#include <Effects/Glow.h>
+#include <Effects/SimpleMotionBlur.h>
+#include <Effects/MotionBlur.h>
+#include <Effects/EdgeDetection.h>
+#include <Effects/Toon.h>
+#include <Effects/SimpleDoF.h>
+#include <Effects/VolumetricLightScattering.h>
+#include <Effects/GrayScale.h>
+#include <Effects/Pixelate.h>
+#include <Effects/Saturate.h>
+#include <Effects/ShowImage.h>
+#include <Effects/DoF.h>
+#include <Effects/SimpleExample.h>
+
+#include <EffectHandler.h>
 
 
 #define MyParticleGroup EnergyParticleGroup<BillBoardParticle<EnergyParticle<DirectionParticle<IParticle> > > >
@@ -153,6 +187,24 @@ class SpawnHandler : public OpenEngine::Core::IListener<OpenEngine::Devices::Key
   std::vector< Vector<3,float> > spawnPoints;
 };
 
+
+
+class MyEffect : public PostProcessingEffect {
+   public:
+     MyEffect(Viewport* viewport) : PostProcessingEffect(viewport) {}
+     void Setup() {
+     	IPostProcessingPass* pass1 = AddPass("PostProcessing/MyEffect.frag");
+		pass1->BindColorBuffer("colorbuf");
+		pass1->EnableColorBufferOutput();
+		pass1->BindDepthBuffer("depthbuf");
+		//pass1->EnableColorBufferOutput();
+     }
+     void PerFrame(const float deltaTime) {}
+};
+
+
+
+
 GeometryNode* LoadGeometryFromFile(string filepath) {
 	// Load the model
 	IModelResourcePtr mod_res = ResourceManager<IModelResource>::Create(filepath);
@@ -194,6 +246,36 @@ void CreateCrate(PhysicsFacade * physics, FaceSet* faces, ISceneNode* scene, flo
   }
 }
 
+class PreProcessing : public RenderingView {
+private:
+	PostProcessingEffect* effect;
+
+public:
+	PreProcessing( Viewport& viewport, PostProcessingEffect* effect ) : IRenderingView(viewport), RenderingView(viewport), effect(effect) {}
+	
+	void Handle(RenderingEventArg arg) {
+		//Render(&arg.renderer, arg.renderer.GetSceneRoot());
+		effect->PreRender();
+	}
+	/*
+	void Render(IRenderer* renderer, ISceneNode* root) {
+		
+	}
+	*/
+};
+
+class PostProcessing : public RenderingView {
+private:
+	PostProcessingEffect* effect;
+
+public:
+	PostProcessing( Viewport& viewport, PostProcessingEffect* effect ) : IRenderingView(viewport), RenderingView(viewport), effect(effect) {}
+	
+	void Handle(RenderingEventArg arg) {
+		effect->PostRender();
+	}
+};
+
 /**
 * Factory constructor.
 *
@@ -213,14 +295,130 @@ GameFactory::GameFactory() : camera(NULL) {
 	this->renderer = new Renderer();
     renderer->SetFarPlane(50000.0);
     renderer->initialize.Attach(*(new TextureLoader())); // space leak
+    renderer->preProcess.Attach(*(new LightRenderer())); // space leak
 
-	// Add a rendering view to the renderer
+    //renderer->process.Attach(*(new MyRenderingView(*viewport)));  // space leak
+    
+    //RenderingView* rv = new RenderingView(*viewport);
     MyRenderingView* rv = new MyRenderingView(*viewport);
     DisplayListTransformer* dlt = new DisplayListTransformer(rv);
     
     renderer->process.Attach(*rv);  // space leak
     renderer->initialize.Attach(*dlt);
+    
 
+    //return;
+
+	
+
+
+	//this->renderer->AddRenderingView(new MyRenderingView(*viewport));
+
+    
+	Wobble* wobble;
+    Glow* glow;
+    SimpleBlur* simpleBlur;
+    TwoPassBlur* twoPassBlur;
+    GaussianBlur* gaussianBlur;
+    SimpleMotionBlur* simpleMotionBlur;
+    MotionBlur* motionBlur;
+    SimpleDoF* simpleDoF;
+    EdgeDetection* edgeDetection;
+    Toon* toon;
+    GrayScale* grayscale;
+    Saturate* saturate;
+    Pixelate* pixelate;
+    VolumetricLightScattering* volumetricLightScattering;
+    Shadows* shadows;
+    //ShowImage* showImage;
+
+    vector<IPostProcessingEffect*> fullscreeneffects;
+	
+	wobble                    = new Wobble(viewport);
+    glow                      = new Glow(viewport);
+    simpleBlur                = new SimpleBlur(viewport);
+    twoPassBlur               = new TwoPassBlur(viewport);
+    gaussianBlur              = new GaussianBlur(viewport);
+    simpleMotionBlur          = new SimpleMotionBlur(viewport);
+    motionBlur                = new MotionBlur(viewport);
+    simpleDoF                 = new SimpleDoF(viewport);
+    edgeDetection             = new EdgeDetection(viewport);
+    toon                      = new Toon(viewport);
+    grayscale                 = new GrayScale(viewport);
+    saturate                  = new Saturate(viewport);
+    pixelate                  = new Pixelate(viewport);
+    volumetricLightScattering = new VolumetricLightScattering(viewport);
+    shadows                   = new Shadows(viewport);
+    //this->showImage                 = new ShowImage(viewport, texture);
+
+    // muligvis skal rækkefølgen laves om...
+    wobble->Add(edgeDetection);
+    wobble->Add(toon);
+    wobble->Add(glow);
+    wobble->Add(simpleBlur);
+    wobble->Add(twoPassBlur);
+    wobble->Add(gaussianBlur);
+    wobble->Add(simpleMotionBlur);
+    wobble->Add(motionBlur);
+    wobble->Add(simpleDoF);
+    wobble->Add(grayscale);
+    wobble->Add(saturate);
+    wobble->Add(volumetricLightScattering);
+    wobble->Add(shadows);
+    wobble->Add(pixelate);
+    //wobble->Add(showImage);
+
+    wobble->Enable(false);
+    glow->Enable(false);
+    simpleBlur->Enable(false);
+    twoPassBlur->Enable(false);
+    gaussianBlur->Enable(false);
+    simpleMotionBlur->Enable(false);
+    motionBlur->Enable(false);
+    simpleDoF->Enable(false);
+    edgeDetection->Enable(false);
+    toon->Enable(false);
+    grayscale->Enable(false);
+    saturate->Enable(false);
+    pixelate->Enable(false);
+    volumetricLightScattering->Enable(false);
+    shadows->Enable(false);
+
+    // add to effects
+    fullscreeneffects.push_back(wobble);
+    fullscreeneffects.push_back(glow);
+    fullscreeneffects.push_back(simpleBlur);
+    fullscreeneffects.push_back(twoPassBlur);
+    fullscreeneffects.push_back(gaussianBlur);
+    fullscreeneffects.push_back(simpleMotionBlur);
+    fullscreeneffects.push_back(motionBlur);
+    fullscreeneffects.push_back(simpleDoF);
+    fullscreeneffects.push_back(edgeDetection);
+    fullscreeneffects.push_back(toon);
+    fullscreeneffects.push_back(grayscale);
+    fullscreeneffects.push_back(saturate);
+    fullscreeneffects.push_back(pixelate);
+    fullscreeneffects.push_back(volumetricLightScattering);
+    fullscreeneffects.push_back(shadows);
+	
+    
+    // Register effect handler to be able to toggle effects
+    EffectHandler* effectHandler = new EffectHandler(fullscreeneffects, NULL, NULL);
+    IKeyboard::keyEvent.Attach(*effectHandler);
+    
+    	
+    //MyEffect* ppe = new MyEffect(viewport);
+    PostProcessingEffect* ppe = wobble; //new SimpleDoF(viewport);
+    
+
+    //PostProcessingEffect* ppe = new DoF(viewport);
+    //PostProcessingEffect* ppe = new Glow(viewport);
+    //PostProcessingEffect* ppe = new VolumetricLightScattering(viewport);
+    
+    IRenderingView* rv2 = new PreProcessing(*viewport, ppe);
+    IRenderingView* rv3 = new PostProcessing(*viewport, ppe);
+    renderer->preProcess.Attach(*rv2);
+    renderer->postProcess.Attach(*rv3);
 }
 
 /**
@@ -354,10 +552,10 @@ bool GameFactory::SetupEngine(IGameEngine& engine) {
 	shotMgr = new ShotManager();
 	rNode->AddNode(shotMgr);
 	engine.AddModule(*shotMgr,IGameEngine::TICK_DEPENDENT);
-
-
+	
 	crosshairNode = new Crosshair();
 	
+	particleObjects = new SceneNode();
 	
 	// Add particle systems to the scene
 	std::vector< PropertyList* >::iterator plistIter;
@@ -368,7 +566,7 @@ bool GameFactory::SetupEngine(IGameEngine& engine) {
 	  ParticleGroupBuilder* groupBuilder = new ParticleGroupBuilder(*plist, string("p1"));
 	  MyParticleGroup* group = (MyParticleGroup*)(groupBuilder->GetParticleGroup());
 	  particleSystem->AddGroup(group);
-	  staticObjects->AddNode(groupBuilder->GetRenderNode());
+	  particleObjects->AddNode(groupBuilder->GetRenderNode());
 	}
 	
 	
@@ -377,7 +575,6 @@ bool GameFactory::SetupEngine(IGameEngine& engine) {
 	Vector<3,float> gravity = mapLoader->GetGravity();
 	physics = new PhysicsFacade(worldAabb, gravity);
 	engine.AddModule(*physics, IGameEngine::TICK_DEPENDENT);
-	
 	
 	
 	// load the collada resource plug-in
@@ -418,6 +615,29 @@ bool GameFactory::SetupEngine(IGameEngine& engine) {
     
     modTrans->AddNode(pln);
 
+
+
+
+
+  // physics debug node
+  //scene->AddNode(physics->getRenderNode(this->renderer));
+  
+  GeometryNode* geoBox = LoadGeometryFromFile("Box/Box.obj");
+  CreateCrate(physics, geoBox->GetFaceSet(), dynamicObjects);
+  
+  // load static geometry
+   {
+    TriangleMesh * triMesh = new TriangleMesh(*physicsObjects);
+    RigidBody * meshBody = new RigidBody(triMesh);
+    meshBody->SetName("Island");
+    meshBody->SetPosition(Vector<3,float>(0,0,5.0));
+    physics->AddRigidBody(meshBody);
+   }
+
+
+
+
+
 	IGamemode* gamemode = new TestGamemode();
 	engine.AddModule(*gamemode);
 	// Load tanks
@@ -453,25 +673,14 @@ bool GameFactory::SetupEngine(IGameEngine& engine) {
     logger.info << "Preprocessing of static tree: done" << logger.end;
 	*/
 
-	rNode->AddNode(staticObjects);
 	rNode->AddNode(dynamicObjects);
+	rNode->AddNode(staticObjects);
+	rNode->AddNode(particleObjects);
 	//rNode->AddNode(physicsObjects);
+
 
   // physics debug node
   //scene->AddNode(physics->getRenderNode(this->renderer));
-  
-  GeometryNode* geoBox = LoadGeometryFromFile("Box/Box.obj");
-  CreateCrate(physics, geoBox->GetFaceSet(), scene);
-  
-  // load static geometry
-   {
-    TriangleMesh * triMesh = new TriangleMesh(*physicsObjects);
-    RigidBody * meshBody = new RigidBody(triMesh);
-    meshBody->SetName("Island");
-    meshBody->SetPosition(Vector<3,float>(0,0,5.0));
-    physics->AddRigidBody(meshBody);
-   }
-
    
     VertexArrayTransformer vaT;
     vaT.Transform(*scene);
@@ -526,12 +735,12 @@ ITank* GameFactory::AddTank(int i) {
     ParticleGroupBuilder* groupBuilder = new ParticleGroupBuilder(*plist, string("p1"));
 	MyParticleGroup* group = (MyParticleGroup*)(groupBuilder->GetParticleGroup());
     particleSystem->AddGroup(group);
-    staticObjects->AddNode(groupBuilder->GetRenderNode());
+    particleObjects->AddNode(groupBuilder->GetRenderNode());
     IEmitter *emitter = groupBuilder->GetEmitter();
     TransformationNode* emitNode = dynamic_cast<TransformationNode*>(emitter);
-    if (emitNode)
+    if (emitNode) {
         mod_tran->AddNode(emitNode);
-
+	}
     //mod_tran->AddNode(groupBuilder->GetRenderNode());
 
     

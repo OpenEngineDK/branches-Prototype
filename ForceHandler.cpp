@@ -71,7 +71,7 @@ void ForceHandler::Handle(OpenEngine::Devices::KeyboardEventArg arg) {
             Quaternion<float> invRot = callback->body->GetRotation().GetInverse();
           
             Vector<3,float> posObj = invRot.RotateVector(rNode.rayEnd -bodyPos);
-            Vector<3,float> force = invRot.RotateVector( ( rNode.rayEnd -rNode.rayStart ).GetNormalize() * 10000);
+            Vector<3,float> force = invRot.RotateVector( ( rNode.rayEnd -rNode.rayStart ).GetNormalize() * 5000);
             dynBody.ApplyForce(force, posObj);
           }
           

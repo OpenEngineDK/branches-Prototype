@@ -35,7 +35,6 @@ public:
         FT_VECTOR4F
     };
 
-
     ParticleGroupBuilder(PropertyList& plist, string group);
     
     IParticleGroup* GetParticleGroup();

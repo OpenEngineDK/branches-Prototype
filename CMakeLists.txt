@@ -76,6 +76,8 @@ TARGET_LINK_LIBRARIES(Prototype-Base
   Extensions_PropertyList
   Extensions_ParticleSystem
   Extensions_Sky
+  Extensions_PostProcessing
+  Extensions_PostProcessingEffects
   Extensions_OpenALSoundSystem
   Extensions_VorbisResource
 )

@@ -65,6 +65,7 @@ private:
     ISceneNode* dynamicObjects;
     ISceneNode* staticObjects;
     ISceneNode* physicsObjects;
+    ISceneNode* particleObjects;
     //FixedTimeStepPhysics* physic;
     PhysicsFacade* physics;
     ParticleSystem* particleSystem;
