@@ -21,7 +21,7 @@
 
 namespace OpenEngine {
     namespace Sound {
-        class ISound;
+        class IMonoSound;
         class OpenALSoundSystem;
     }
 
@@ -31,12 +31,12 @@ namespace OpenEngine {
 		using namespace OpenEngine::Physics;
 		using namespace OpenEngine::Core;
 
-        using OpenEngine::Sound::ISound;
+        using OpenEngine::Sound::IMonoSound;
         using OpenEngine::Sound::OpenALSoundSystem;
 
 		class SeanTank : public ITank {
         private:
-            ISound* sound;
+            IMonoSound* sound;
             OpenALSoundSystem* soundmgr;
 
 		public:

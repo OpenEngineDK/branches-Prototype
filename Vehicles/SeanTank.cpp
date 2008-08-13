@@ -62,7 +62,7 @@ namespace OpenEngine {
             ISoundResourcePtr soundres = 
                 ResourceManager<ISoundResource>::Create("splat.ogg");
             
-            sound = soundmgr->CreateSound(soundres);
+            sound = soundmgr->CreateMonoSound(soundres);
             SoundNode* soundNode = new SoundNode(sound);
             tankTurretTrans->AddNode(soundNode);
 

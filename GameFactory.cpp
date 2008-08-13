@@ -450,9 +450,9 @@ bool GameFactory::SetupEngine(IGameEngine& engine) {
 	// Supply the scene to the renderer
 	this->renderer->SetSceneRoot(scene);
 
-    // Add soundmodule
-    soundmgr = new OpenALSoundSystem(scene, camera);
-    engine.AddModule(*soundmgr);
+	// Add soundmodule
+	soundmgr = new OpenALSoundSystem(scene, camera);
+	engine.AddModule(*soundmgr);
 
 	// Add RenderStateNode to change rendering features at runtime
 	RenderStateNode* rNode = new RenderStateNode();
